@@ -10,9 +10,10 @@ The project currently has a small backend workflow:
 - `GET /api/flights` returns one hard-coded example flight.
 - `GET /api/flights/{id}/recovery-options` returns available aircraft of the same type for a disrupted flight.
 - Recovery options at the flight's departure airport are ranked first. Other airports require repositioning.
-- Includes Spring MVC tests for the flight list, recovery-option ranking, and unknown flight IDs.
+- `POST /api/flights/{id}/reassign` assigns a selected compatible, available aircraft and marks the flight `RECOVERED`.
+- Includes Spring MVC tests for listing flights, recovery-option ranking, reassignment, and invalid choices.
 
-The example flight is marked `DISRUPTED` because of a maintenance hold. Aircraft and flight data are hard-coded in memory and reset when the application restarts. There is no React UI, database, or reassignment workflow yet.
+The example flight is marked `DISRUPTED` because of a maintenance hold. Aircraft and flight data are hard-coded in memory and reset when the application restarts. There is no React UI or database yet.
 
 The demo illustrates software structure and is not intended for real flight dispatch or safety decisions.
 
@@ -48,6 +49,17 @@ Invoke-RestMethod http://localhost:8080/api/flights/FL-1001/recovery-options
 
 The response lists `N701NJ` first because it is already at `KTEB`, the flight's departure airport. `N702NJ` is also available and compatible, but requires repositioning from `KOPF`. Aircraft that are in maintenance, already assigned, or a different type are excluded.
 
+Assign an aircraft from the recovery options to recover the flight:
+
+```powershell
+Invoke-RestMethod -Method Post `
+  -Uri http://localhost:8080/api/flights/FL-1001/reassign `
+  -ContentType "application/json" `
+  -Body '{"aircraftId":"N701NJ"}'
+```
+
+The response contains the updated flight with status `RECOVERED`. Since the demo stores state in memory, restarting the backend resets the example flight.
+
 The flight-list endpoint returns an array with a flight like this:
 
 ```json
@@ -81,6 +93,7 @@ backend/
   src/main/java/com/example/flightops/
     FlightOpsApplication.java       Spring Boot application entry point
     api/FlightController.java       Flight list and recovery-options endpoints
+    api/ReassignRequest.java        Reassignment request body
     model/Flight.java               Flight response data
     model/Aircraft.java             Aircraft response and status
     model/RecoveryOption.java        Ranked recovery-option response
@@ -91,4 +104,4 @@ backend/
 
 ## Planned next steps
 
-The reassignment workflow and React/TypeScript operations UI are not implemented yet. They can be added one small, testable step at a time.
+The React/TypeScript operations UI is not implemented yet. It can be added one small, testable step at a time.

@@ -4,10 +4,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -48,6 +51,38 @@ class FlightControllerTest {
     @Test
     void returnsNotFoundForAnUnknownFlight() throws Exception {
         mockMvc.perform(get("/api/flights/UNKNOWN/recovery-options"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DirtiesContext
+    void reassignsFlightToAnAvailableCompatibleAircraft() throws Exception {
+        mockMvc.perform(post("/api/flights/FL-1001/reassign")
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"aircraftId\":\"N701NJ\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assignedAircraftId").value("N701NJ"))
+                .andExpect(jsonPath("$.status").value("RECOVERED"));
+
+        mockMvc.perform(get("/api/flights"))
+                .andExpect(jsonPath("$[0].status").value("RECOVERED"));
+    }
+
+    @Test
+    void rejectsUnavailableIncompatibleAndUnknownAircraft() throws Exception {
+        mockMvc.perform(post("/api/flights/FL-1001/reassign")
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"aircraftId\":\"N704NJ\"}"))
+                .andExpect(status().isConflict());
+
+        mockMvc.perform(post("/api/flights/FL-1001/reassign")
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"aircraftId\":\"N703NJ\"}"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/flights/FL-1001/reassign")
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"aircraftId\":\"UNKNOWN\"}"))
                 .andExpect(status().isNotFound());
     }
 }

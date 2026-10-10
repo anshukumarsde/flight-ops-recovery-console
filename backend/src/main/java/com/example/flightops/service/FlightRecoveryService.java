@@ -13,7 +13,7 @@ import java.util.List;
 
 @Service
 public class FlightRecoveryService {
-    private final List<Flight> flights = List.of(
+    private final List<Flight> flights = new ArrayList<>(List.of(
             new Flight(
                     "FL-1001",
                     "NJ 1001",
@@ -24,15 +24,15 @@ public class FlightRecoveryService {
                     "DISRUPTED",
                     "Maintenance hold"
             )
-    );
+    ));
 
-    private final List<Aircraft> aircraft = List.of(
+    private final List<Aircraft> aircraft = new ArrayList<>(List.of(
             new Aircraft("N700NJ", "Citation Latitude", AircraftStatus.MAINTENANCE, "KTEB"),
             new Aircraft("N701NJ", "Citation Latitude", AircraftStatus.AVAILABLE, "KTEB"),
             new Aircraft("N702NJ", "Citation Latitude", AircraftStatus.AVAILABLE, "KOPF"),
             new Aircraft("N703NJ", "Citation Longitude", AircraftStatus.AVAILABLE, "KTEB"),
             new Aircraft("N704NJ", "Citation Latitude", AircraftStatus.ASSIGNED, "KTEB")
-    );
+    ));
 
     public List<Flight> getFlights() {
         return flights;
@@ -63,6 +63,49 @@ public class FlightRecoveryService {
         }
 
         return options;
+    }
+
+    public Flight reassignFlight(String flightId, String aircraftId) {
+        Flight flight = findFlight(flightId);
+        if (!flight.status().equals("DISRUPTED")) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Flight is not disrupted");
+        }
+        if (aircraftId == null || aircraftId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Aircraft ID is required");
+        }
+
+        for (int index = 0; index < aircraft.size(); index++) {
+            Aircraft candidate = aircraft.get(index);
+            if (candidate.id().equals(aircraftId)) {
+                if (candidate.status() != AircraftStatus.AVAILABLE) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Aircraft is not available");
+                }
+                if (!candidate.type().equals(flight.aircraftType())) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Aircraft type is incompatible");
+                }
+
+                Flight recoveredFlight = new Flight(
+                        flight.id(),
+                        flight.flightNumber(),
+                        flight.departureAirport(),
+                        flight.arrivalAirport(),
+                        flight.aircraftType(),
+                        candidate.id(),
+                        "RECOVERED",
+                        null
+                );
+                flights.set(flights.indexOf(flight), recoveredFlight);
+                aircraft.set(index, new Aircraft(
+                        candidate.id(),
+                        candidate.type(),
+                        AircraftStatus.ASSIGNED,
+                        candidate.currentAirport()
+                ));
+                return recoveredFlight;
+            }
+        }
+
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Aircraft not found: " + aircraftId);
     }
 
     private void addMatchingAircraft(List<Aircraft> rankedAircraft, Flight flight, boolean atDeparture) {
