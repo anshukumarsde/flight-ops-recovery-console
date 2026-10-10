@@ -1,41 +1,66 @@
 # Flight Operations Recovery Console
 
-A beginner-friendly portfolio demo for a flight disruption recovery workflow. This is a standalone demo: it is not a NetJets system and does not use proprietary NetJets data.
+This is a small portfolio demo of one flight-operations task: finding a replacement aircraft when the aircraft assigned to a flight becomes unavailable.
 
-## What the application currently does
+This is an independent demo project. It is not a NetJets system, does not use NetJets data, and must not be used to make real flight or safety decisions.
 
-The project currently has a small backend workflow:
+## What the demo does
 
-- Runs a Java 17+ Spring Boot REST API.
-- `GET /api/flights` returns one hard-coded example flight.
-- `GET /api/flights/{id}/recovery-options` returns available aircraft of the same type for a disrupted flight.
-- Recovery options at the flight's departure airport are ranked first. Other airports require repositioning.
-- `POST /api/flights/{id}/reassign` assigns a selected compatible, available aircraft and marks the flight `RECOVERED`.
-- The React/TypeScript operations screen displays the flight, lets an operator choose a recovery option, and submits the reassignment.
-- Includes Spring MVC tests for listing flights, recovery-option ranking, reassignment, and invalid choices.
+The demo starts with one example flight:
 
-The example flight is marked `DISRUPTED` because of a maintenance hold. Aircraft and flight data are hard-coded in memory and reset when the backend restarts. There is no database.
+- Flight **NJ 1001** is due to fly from **KTEB** to **KMIA**.
+- Its assigned aircraft, **N700NJ**, is on a maintenance hold.
+- The flight is therefore marked **DISRUPTED**.
 
-The demo illustrates software structure and is not intended for real flight dispatch or safety decisions.
+The screen asks the backend for replacement choices. The backend shows only aircraft that are both available and the same type as the flight requires. It puts an aircraft already at **KTEB** before one that would need to travel to KTEB.
 
-## Requirements
+For this example, the choices are:
 
-- Java 17 or newer
-- Maven 3.6.3 or newer
-- Node.js 18 or newer (includes npm)
+1. **N701NJ**, at KTEB, so it does not need to be repositioned.
+2. **N702NJ**, at KOPF, so it would need to be repositioned.
 
-## Run locally
+Choose an aircraft and select **Assign selected aircraft**. The backend assigns it to the flight and changes the flight status to **RECOVERED**. The screen then shows that recovery is complete.
 
-Start the backend in one terminal:
+The app is split into two parts: a Java backend that holds the example flight and makes the recovery decision, and a React screen in the browser that displays the flight and sends the operator's selection to the backend. Both parts need to be running for the full demo to work.
+
+## What this demo does not do
+
+The flight and aircraft information is example data kept in memory, not in a database. It resets when the backend restarts. The recovery rule is intentionally limited to aircraft type, availability, and current airport. It does not check crew, maintenance records beyond the sample hold, weather, airport restrictions, aircraft performance, passenger needs, or any other real dispatch requirements.
+
+## What you need
+
+Install these tools before running the app:
+
+- **Java 17 or newer** to run the backend.
+- **Maven** to start and test the backend.
+- **Node.js** (which includes npm) to start the browser screen.
+
+After installing a tool, open a new PowerShell window so it can find the tool. You can check that Java and Node.js are available with:
+
+```powershell
+java -version
+node --version
+npm.cmd --version
+```
+
+## Run the app
+
+Use two PowerShell windows: one for the backend and one for the frontend. Run each `cd` command from the project folder.
+
+### 1. Start the backend
+
+In the first PowerShell window:
 
 ```powershell
 cd backend
 mvn spring-boot:run
 ```
 
-The API starts at `http://localhost:8080`. Keep the terminal open while using it.
+Wait until Spring Boot says the application has started. Leave this window open. The backend listens on port **8080**.
 
-In a second terminal, install and start the frontend:
+### 2. Start the frontend
+
+In a second PowerShell window, return to the project folder first if needed, then run:
 
 ```powershell
 cd frontend
@@ -43,91 +68,27 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-Open the Vite URL printed in the terminal (normally `http://127.0.0.1:5173`). The Vite development server forwards `/api` requests to the backend on port 8080. Keep both terminals open while using the application.
+`npm.cmd install` downloads the frontend packages. You only need to do this the first time, or after frontend dependencies change. `npm.cmd run dev` starts the browser screen.
 
-## Try the API
-
-Request the flight list at `http://localhost:8080/api/flights`, or run this in a separate PowerShell terminal:
-
-```powershell
-Invoke-RestMethod http://localhost:8080/api/flights
-```
-
-Request recovery options for the demo flight:
-
-```powershell
-Invoke-RestMethod http://localhost:8080/api/flights/FL-1001/recovery-options
-```
-
-The response lists `N701NJ` first because it is already at `KTEB`, the flight's departure airport. `N702NJ` is also available and compatible, but requires repositioning from `KOPF`. Aircraft that are in maintenance, already assigned, or a different type are excluded.
-
-Assign an aircraft from the recovery options to recover the flight:
-
-```powershell
-Invoke-RestMethod -Method Post `
-  -Uri http://localhost:8080/api/flights/FL-1001/reassign `
-  -ContentType "application/json" `
-  -Body '{"aircraftId":"N701NJ"}'
-```
-
-The response contains the updated flight with status `RECOVERED`. Since the demo stores state in memory, restarting the backend resets the example flight.
-
-The flight-list endpoint returns an array with a flight like this:
-
-```json
-[
-  {
-    "id": "FL-1001",
-    "flightNumber": "NJ 1001",
-    "departureAirport": "KTEB",
-    "arrivalAirport": "KMIA",
-    "aircraftType": "Citation Latitude",
-    "assignedAircraftId": "N700NJ",
-    "status": "DISRUPTED",
-    "disruptionReason": "Maintenance hold"
-  }
-]
-```
-
-## Run tests
-
-From the project folder:
-
-```powershell
-cd backend
-mvn test
-```
-
-Build and type-check the frontend:
-
-```powershell
-cd frontend
-npm.cmd run build
-```
-
-## Automated checks
-
-GitHub Actions runs the backend tests and frontend production build on each push and pull request. The checks use Java 17 and Node.js 20.
-
-## Project layout
+Open the local web address printed in the terminal. It is usually:
 
 ```text
-backend/
-  src/main/java/com/example/flightops/
-    FlightOpsApplication.java       Spring Boot application entry point
-    api/FlightController.java       Flight list and recovery-options endpoints
-    api/ReassignRequest.java        Reassignment request body
-    model/Flight.java               Flight response data
-    model/Aircraft.java             Aircraft response and status
-    model/RecoveryOption.java        Ranked recovery-option response
-    service/FlightRecoveryService.java Filters and ranks aircraft
-  src/test/java/com/example/flightops/api/
-    FlightControllerTest.java       Endpoint test
-frontend/
-  src/App.tsx                       Operations screen and API calls
-  src/styles.css                    Responsive screen styles
+http://127.0.0.1:5173
 ```
 
-## Planned next steps
+Leave both windows open while using the app. If the page says the API cannot be reached, check that the backend is still running in the first window.
 
-The demo uses in-memory sample data. A database and persistent operational state are outside the current MVP.
+## Try the recovery
+
+1. Confirm that the screen shows flight **NJ 1001** as **DISRUPTED**.
+2. Compare the replacement choices and their current airports.
+3. Select **N701NJ** or **N702NJ**.
+4. Select **Assign selected aircraft**.
+5. Confirm that the flight changes to **RECOVERED**.
+
+The example data is reset when the backend restarts. To demonstrate the workflow again, stop the backend with **Ctrl+C** in its PowerShell window, then run `mvn spring-boot:run` again. Refresh the browser page.
+
+## Useful links while the backend is running
+
+- `http://localhost:8080/api/flights` shows the example flight data.
+- `http://localhost:8080/api/flights/FL-1001/recovery-options` shows the replacement aircraft returned by the backend.
