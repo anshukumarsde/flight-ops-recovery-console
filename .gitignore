@@ -3,6 +3,8 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 /backend/target/
+/frontend/node_modules/
+/frontend/dist/
 .kotlin
 
 ### Eclipse ###
