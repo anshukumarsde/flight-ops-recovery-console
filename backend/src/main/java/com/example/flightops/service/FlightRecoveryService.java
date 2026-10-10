@@ -13,18 +13,10 @@ import java.util.List;
 
 @Service
 public class FlightRecoveryService {
-    private final List<Flight> flights = new ArrayList<>(List.of(
-            new Flight(
-                    "FL-1001",
-                    "NJ 1001",
-                    "KTEB",
-                    "KMIA",
-                    "Citation Latitude",
-                    "N700NJ",
-                    "DISRUPTED",
-                    "Maintenance hold"
-            )
-    ));
+    private Flight flight = new Flight(
+            "FL-1001", "NJ 1001", "KTEB", "KMIA",
+            "Citation Latitude", "N700NJ", "DISRUPTED", "Maintenance hold"
+    );
 
     private final List<Aircraft> aircraft = new ArrayList<>(List.of(
             new Aircraft("N700NJ", "Citation Latitude", AircraftStatus.MAINTENANCE, "KTEB"),
@@ -35,7 +27,7 @@ public class FlightRecoveryService {
     ));
 
     public List<Flight> getFlights() {
-        return flights;
+        return List.of(flight);
     }
 
     public List<RecoveryOption> getRecoveryOptions(String flightId) {
@@ -47,21 +39,9 @@ public class FlightRecoveryService {
             );
         }
 
-        List<Aircraft> rankedAircraft = new ArrayList<>();
-        addMatchingAircraft(rankedAircraft, flight, true);
-        addMatchingAircraft(rankedAircraft, flight, false);
-
         List<RecoveryOption> options = new ArrayList<>();
-        for (int index = 0; index < rankedAircraft.size(); index++) {
-            Aircraft candidate = rankedAircraft.get(index);
-            boolean requiresRepositioning = !candidate.currentAirport().equals(flight.departureAirport());
-
-            options.add(new RecoveryOption(candidate.id(), candidate.type(), candidate.currentAirport(),
-                    requiresRepositioning,
-                    index + 1
-            ));
-        }
-
+        addMatchingAircraft(flight, options, true);
+        addMatchingAircraft(flight, options, false);
         return options;
     }
 
@@ -94,7 +74,7 @@ public class FlightRecoveryService {
                         "RECOVERED",
                         null
                 );
-                flights.set(flights.indexOf(flight), recoveredFlight);
+                this.flight = recoveredFlight;
                 aircraft.set(index, new Aircraft(
                         candidate.id(),
                         candidate.type(),
@@ -108,26 +88,29 @@ public class FlightRecoveryService {
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Aircraft not found: " + aircraftId);
     }
 
-    private void addMatchingAircraft(List<Aircraft> rankedAircraft, Flight flight, boolean atDeparture) {
+    private void addMatchingAircraft(Flight flight, List<RecoveryOption> options, boolean atDeparture) {
         for (Aircraft candidate : aircraft) {
-            boolean isAtDeparture =
+            boolean aircraftAtDeparture =
                     candidate.currentAirport().equals(flight.departureAirport());
+            boolean compatibleAndAvailable =
+                    candidate.status() == AircraftStatus.AVAILABLE
+                            && candidate.type().equals(flight.aircraftType());
 
-            if (isAvailableReplacementFor(candidate, flight) && isAtDeparture == atDeparture) {
-                rankedAircraft.add(candidate);
+            if (compatibleAndAvailable && aircraftAtDeparture == atDeparture) {
+                options.add(new RecoveryOption(
+                        candidate.id(),
+                        candidate.type(),
+                        candidate.currentAirport(),
+                        !aircraftAtDeparture,
+                        options.size() + 1
+                ));
             }
         }
     }
 
-    private boolean isAvailableReplacementFor(Aircraft candidate, Flight flight) {
-        return candidate.status() == AircraftStatus.AVAILABLE && candidate.type().equals(flight.aircraftType());
-    }
-
     private Flight findFlight(String flightId) {
-        for (Flight flight : flights) {
-            if (flight.id().equals(flightId)) {
-                return flight;
-            }
+        if (flight.id().equals(flightId)) {
+            return flight;
         }
         throw new ResponseStatusException(
                 HttpStatus.NOT_FOUND,

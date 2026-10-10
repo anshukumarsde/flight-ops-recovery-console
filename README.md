@@ -105,6 +105,10 @@ cd frontend
 npm.cmd run build
 ```
 
+## Automated checks
+
+GitHub Actions runs the backend tests and frontend production build on each push and pull request. The checks use Java 17 and Node.js 20.
+
 ## Project layout
 
 ```text
