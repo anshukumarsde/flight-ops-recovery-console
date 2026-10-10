@@ -4,14 +4,15 @@ A beginner-friendly portfolio demo for a flight disruption recovery workflow. Th
 
 ## What the application currently does
 
-The project is at its first backend milestone:
+The project currently has a small backend workflow:
 
 - Runs a Java 17+ Spring Boot REST API.
-- `GET /api/flights` returns a JSON array containing one hard-coded example flight.
-- The example flight is marked `DISRUPTED` because of a maintenance hold.
-- Includes a Spring MVC test that checks the endpoint returns the example flight.
+- `GET /api/flights` returns one hard-coded example flight.
+- `GET /api/flights/{id}/recovery-options` returns available aircraft of the same type for a disrupted flight.
+- Recovery options at the flight's departure airport are ranked first. Other airports require repositioning.
+- Includes Spring MVC tests for the flight list, recovery-option ranking, and unknown flight IDs.
 
-For now, this is only a backend endpoint. There is no React UI, database, aircraft recovery-options endpoint, or reassignment workflow yet. The sample data is in memory and resets when the application restarts.
+The example flight is marked `DISRUPTED` because of a maintenance hold. Aircraft and flight data are hard-coded in memory and reset when the application restarts. There is no React UI, database, or reassignment workflow yet.
 
 The demo illustrates software structure and is not intended for real flight dispatch or safety decisions.
 
@@ -39,7 +40,15 @@ Request the flight list at `http://localhost:8080/api/flights`, or run this in a
 Invoke-RestMethod http://localhost:8080/api/flights
 ```
 
-The endpoint returns an array with a flight like this:
+Request recovery options for the demo flight:
+
+```powershell
+Invoke-RestMethod http://localhost:8080/api/flights/FL-1001/recovery-options
+```
+
+The response lists `N701NJ` first because it is already at `KTEB`, the flight's departure airport. `N702NJ` is also available and compatible, but requires repositioning from `KOPF`. Aircraft that are in maintenance, already assigned, or a different type are excluded.
+
+The flight-list endpoint returns an array with a flight like this:
 
 ```json
 [
@@ -71,12 +80,15 @@ mvn test
 backend/
   src/main/java/com/example/flightops/
     FlightOpsApplication.java       Spring Boot application entry point
-    api/FlightController.java       GET /api/flights endpoint
+    api/FlightController.java       Flight list and recovery-options endpoints
     model/Flight.java               Flight response data
+    model/Aircraft.java             Aircraft response and status
+    model/RecoveryOption.java        Ranked recovery-option response
+    service/FlightRecoveryService.java Filters and ranks aircraft
   src/test/java/com/example/flightops/api/
     FlightControllerTest.java       Endpoint test
 ```
 
 ## Planned next steps
 
-The recovery-options endpoint, compatible-aircraft ranking, reassignment workflow, and React/TypeScript operations UI are not implemented yet. They can be added one small, testable step at a time.
+The reassignment workflow and React/TypeScript operations UI are not implemented yet. They can be added one small, testable step at a time.
