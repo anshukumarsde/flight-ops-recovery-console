@@ -21,4 +21,11 @@ class FlightControllerTest {
                 .andExpect(jsonPath("$[0].id").value("FL-1001"))
                 .andExpect(jsonPath("$[0].status").value("DISRUPTED"));
     }
+
+    @Test
+    void listsFlightsWhenTheUrlHasATrailingSlash() throws Exception {
+        mockMvc.perform(get("/api/flights/"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("FL-1001"));
+    }
 }

@@ -10,7 +10,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/flights")
 public class FlightController {
-    @GetMapping
+    @GetMapping({"", "/"})
     public List<Flight> getFlights() {
         return List.of(new Flight(
                 "FL-1001",
