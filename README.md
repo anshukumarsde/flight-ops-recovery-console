@@ -11,9 +11,10 @@ The project currently has a small backend workflow:
 - `GET /api/flights/{id}/recovery-options` returns available aircraft of the same type for a disrupted flight.
 - Recovery options at the flight's departure airport are ranked first. Other airports require repositioning.
 - `POST /api/flights/{id}/reassign` assigns a selected compatible, available aircraft and marks the flight `RECOVERED`.
+- The React/TypeScript operations screen displays the flight, lets an operator choose a recovery option, and submits the reassignment.
 - Includes Spring MVC tests for listing flights, recovery-option ranking, reassignment, and invalid choices.
 
-The example flight is marked `DISRUPTED` because of a maintenance hold. Aircraft and flight data are hard-coded in memory and reset when the application restarts. There is no React UI or database yet.
+The example flight is marked `DISRUPTED` because of a maintenance hold. Aircraft and flight data are hard-coded in memory and reset when the backend restarts. There is no database.
 
 The demo illustrates software structure and is not intended for real flight dispatch or safety decisions.
 
@@ -21,10 +22,11 @@ The demo illustrates software structure and is not intended for real flight disp
 
 - Java 17 or newer
 - Maven 3.6.3 or newer
+- Node.js 18 or newer (includes npm)
 
 ## Run locally
 
-Open a terminal in the project folder, then run:
+Start the backend in one terminal:
 
 ```powershell
 cd backend
@@ -32,6 +34,16 @@ mvn spring-boot:run
 ```
 
 The API starts at `http://localhost:8080`. Keep the terminal open while using it.
+
+In a second terminal, install and start the frontend:
+
+```powershell
+cd frontend
+npm.cmd install
+npm.cmd run dev
+```
+
+Open the Vite URL printed in the terminal (normally `http://127.0.0.1:5173`). The Vite development server forwards `/api` requests to the backend on port 8080. Keep both terminals open while using the application.
 
 ## Try the API
 
@@ -86,6 +98,13 @@ cd backend
 mvn test
 ```
 
+Build and type-check the frontend:
+
+```powershell
+cd frontend
+npm.cmd run build
+```
+
 ## Project layout
 
 ```text
@@ -100,8 +119,11 @@ backend/
     service/FlightRecoveryService.java Filters and ranks aircraft
   src/test/java/com/example/flightops/api/
     FlightControllerTest.java       Endpoint test
+frontend/
+  src/App.tsx                       Operations screen and API calls
+  src/styles.css                    Responsive screen styles
 ```
 
 ## Planned next steps
 
-The React/TypeScript operations UI is not implemented yet. It can be added one small, testable step at a time.
+The demo uses in-memory sample data. A database and persistent operational state are outside the current MVP.
