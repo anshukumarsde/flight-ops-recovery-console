@@ -36,3 +36,4 @@ public class FlightController {
         return flightRecoveryService.reassignFlight(id, request.aircraftId());
     }
 }
+

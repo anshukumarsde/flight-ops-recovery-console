@@ -1,62 +1,93 @@
 package com.example.flightops.repository;
 
+import com.example.flightops.entity.AircraftEntity;
+import com.example.flightops.entity.FlightEntity;
 import com.example.flightops.model.Aircraft;
-import com.example.flightops.model.AircraftStatus;
 import com.example.flightops.model.Flight;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Repository
 public class FlightRepository {
-    private Flight flight = new Flight(
-            "FL-1001", "NJ 1001", "KTEB", "KMIA",
-            "Citation Latitude", "N700NJ", "DISRUPTED", "Maintenance hold"
-    );
+    private final FlightJpaRepository flightJpaRepository;
+    private final AircraftJpaRepository aircraftJpaRepository;
 
-    private final List<Aircraft> aircraft = new ArrayList<>(List.of(
-            new Aircraft("N700NJ", "Citation Latitude", AircraftStatus.MAINTENANCE, "KTEB"),
-            new Aircraft("N701NJ", "Citation Latitude", AircraftStatus.AVAILABLE, "KTEB"),
-            new Aircraft("N702NJ", "Citation Latitude", AircraftStatus.AVAILABLE, "KOPF"),
-            new Aircraft("N703NJ", "Citation Longitude", AircraftStatus.AVAILABLE, "KTEB"),
-            new Aircraft("N704NJ", "Citation Latitude", AircraftStatus.ASSIGNED, "KTEB")
-    ));
+    public FlightRepository(FlightJpaRepository flightJpaRepository, AircraftJpaRepository aircraftJpaRepository) {
+        this.flightJpaRepository = flightJpaRepository;
+        this.aircraftJpaRepository = aircraftJpaRepository;
+    }
 
     public List<Flight> getFlights() {
-        return List.of(flight);
+        return flightJpaRepository.findAll().stream()
+                .map(this::toDomainFlight)
+                .toList();
     }
 
     public Flight findFlightById(String flightId) {
-        if (flight.id().equals(flightId)) {
-            return flight;
-        }
-        return null;
+        return flightJpaRepository.findById(flightId)
+                .map(this::toDomainFlight)
+                .orElse(null);
     }
 
     public void saveFlight(Flight updatedFlight) {
-        this.flight = updatedFlight;
+        flightJpaRepository.save(toEntity(updatedFlight));
     }
 
+    // Repository layer translates persistence entities to domain objects without changing business rules.
     public List<Aircraft> getAircraft() {
-        return aircraft;
+        return aircraftJpaRepository.findAll().stream()
+                .map(this::toDomainAircraft)
+                .toList();
     }
 
     public Aircraft findAircraftById(String aircraftId) {
-        for (Aircraft candidate : aircraft) {
-            if (candidate.id().equals(aircraftId)) {
-                return candidate;
-            }
-        }
-        return null;
+        return aircraftJpaRepository.findById(aircraftId)
+                .map(this::toDomainAircraft)
+                .orElse(null);
     }
 
     public void updateAircraft(String aircraftId, Aircraft updatedAircraft) {
-        for (int index = 0; index < aircraft.size(); index++) {
-            if (aircraft.get(index).id().equals(aircraftId)) {
-                aircraft.set(index, updatedAircraft);
-                return;
-            }
-        }
+        aircraftJpaRepository.findById(aircraftId).ifPresent(entity -> {
+            entity.setType(updatedAircraft.type());
+            entity.setStatus(updatedAircraft.status());
+            entity.setCurrentAirport(updatedAircraft.currentAirport());
+            aircraftJpaRepository.save(entity);
+        });
+    }
+
+    private Flight toDomainFlight(FlightEntity entity) {
+        return new Flight(
+                entity.getId(),
+                entity.getFlightNumber(),
+                entity.getDepartureAirport(),
+                entity.getArrivalAirport(),
+                entity.getAircraftType(),
+                entity.getAssignedAircraftId(),
+                entity.getStatus(),
+                entity.getDisruptionReason()
+        );
+    }
+
+    private FlightEntity toEntity(Flight flight) {
+        return new FlightEntity(
+                flight.id(),
+                flight.flightNumber(),
+                flight.departureAirport(),
+                flight.arrivalAirport(),
+                flight.aircraftType(),
+                flight.assignedAircraftId(),
+                flight.status(),
+                flight.disruptionReason()
+        );
+    }
+
+    private Aircraft toDomainAircraft(AircraftEntity entity) {
+        return new Aircraft(
+                entity.getId(),
+                entity.getType(),
+                entity.getStatus(),
+                entity.getCurrentAirport()
+        );
     }
 }
