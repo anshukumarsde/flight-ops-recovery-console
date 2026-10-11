@@ -54,6 +54,41 @@ Requests follow this path:
 
 The `model/` folder holds the Java data objects used by the application. `config/DataInitializer.java` adds the sample flight and aircraft when the database has no corresponding records.
 
+### System diagram
+
+This interview-level view shows the main components, their responsibilities, and how a recovery request moves through the system:
+
+```mermaid
+%%{init: {"themeVariables": {"fontSize": "56px"}, "flowchart": {"nodeSpacing": 190, "rankSpacing": 220}}}%%
+flowchart LR
+    Operator["Operator"]
+
+    subgraph Frontend["Frontend - React"]
+        UI["Screens and user actions"]
+        ApiClient["API client<br/>fetch()"]
+        UI --> ApiClient
+    end
+
+    subgraph Backend["Backend - Spring Boot"]
+        Controller["REST controller<br/>HTTP endpoints"]
+        Service["Service<br/>Recovery rules and validation"]
+        Repository["Repository<br/>Persistence access"]
+        Controller --> Service --> Repository
+    end
+
+    Jpa["Spring Data JPA"]
+    Database[("H2 database<br/>Flights, aircraft, recovery history")]
+    Seed["Startup data initializer"]
+
+    Operator <--> UI
+    ApiClient <-->|"HTTP / JSON"| Controller
+    Repository <--> Jpa
+    Jpa <--> Database
+    Seed -->|"Adds demo records when tables are empty"| Database
+```
+
+For an aircraft reassignment, the API client sends a `POST` request. The controller passes it to the service, which checks that the flight is disrupted and the replacement aircraft is available and compatible. The repository saves the recovered flight, updates the aircraft, and records the incident in H2. The backend returns a JSON response through the same path, and the frontend refreshes the screen.
+
 ## Requirements
 
 Install the following tools:
