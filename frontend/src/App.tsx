@@ -256,7 +256,6 @@ function App() {
           </div>
         )}
 
-        <footer className="footer-note">Portfolio demo only · Sample data · Not for real-world dispatch</footer>
       </div>
     </main>
   );
