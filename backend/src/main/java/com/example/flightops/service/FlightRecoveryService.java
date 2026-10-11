@@ -4,6 +4,7 @@ import com.example.flightops.model.Aircraft;
 import com.example.flightops.model.AircraftStatus;
 import com.example.flightops.model.Flight;
 import com.example.flightops.model.RecoveryOption;
+import com.example.flightops.repository.FlightRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -13,21 +14,14 @@ import java.util.List;
 
 @Service
 public class FlightRecoveryService {
-    private Flight flight = new Flight(
-            "FL-1001", "NJ 1001", "KTEB", "KMIA",
-            "Citation Latitude", "N700NJ", "DISRUPTED", "Maintenance hold"
-    );
+    private final FlightRepository flightRepository;
 
-    private final List<Aircraft> aircraft = new ArrayList<>(List.of(
-            new Aircraft("N700NJ", "Citation Latitude", AircraftStatus.MAINTENANCE, "KTEB"),
-            new Aircraft("N701NJ", "Citation Latitude", AircraftStatus.AVAILABLE, "KTEB"),
-            new Aircraft("N702NJ", "Citation Latitude", AircraftStatus.AVAILABLE, "KOPF"),
-            new Aircraft("N703NJ", "Citation Longitude", AircraftStatus.AVAILABLE, "KTEB"),
-            new Aircraft("N704NJ", "Citation Latitude", AircraftStatus.ASSIGNED, "KTEB")
-    ));
+    public FlightRecoveryService(FlightRepository flightRepository) {
+        this.flightRepository = flightRepository;
+    }
 
     public List<Flight> getFlights() {
-        return List.of(flight);
+        return flightRepository.getFlights();
     }
 
     public List<RecoveryOption> getRecoveryOptions(String flightId) {
@@ -54,42 +48,41 @@ public class FlightRecoveryService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Aircraft ID is required");
         }
 
-        for (int index = 0; index < aircraft.size(); index++) {
-            Aircraft candidate = aircraft.get(index);
-            if (candidate.id().equals(aircraftId)) {
-                if (candidate.status() != AircraftStatus.AVAILABLE) {
-                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Aircraft is not available");
-                }
-                if (!candidate.type().equals(flight.aircraftType())) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Aircraft type is incompatible");
-                }
-
-                Flight recoveredFlight = new Flight(
-                        flight.id(),
-                        flight.flightNumber(),
-                        flight.departureAirport(),
-                        flight.arrivalAirport(),
-                        flight.aircraftType(),
-                        candidate.id(),
-                        "RECOVERED",
-                        null
-                );
-                this.flight = recoveredFlight;
-                aircraft.set(index, new Aircraft(
-                        candidate.id(),
-                        candidate.type(),
-                        AircraftStatus.ASSIGNED,
-                        candidate.currentAirport()
-                ));
-                return recoveredFlight;
-            }
+        Aircraft candidate = flightRepository.findAircraftById(aircraftId);
+        if (candidate == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Aircraft not found: " + aircraftId);
         }
 
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Aircraft not found: " + aircraftId);
+        if (candidate.status() != AircraftStatus.AVAILABLE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Aircraft is not available");
+        }
+        if (!candidate.type().equals(flight.aircraftType())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Aircraft type is incompatible");
+        }
+
+        Flight recoveredFlight = new Flight(
+                flight.id(),
+                flight.flightNumber(),
+                flight.departureAirport(),
+                flight.arrivalAirport(),
+                flight.aircraftType(),
+                candidate.id(),
+                "RECOVERED",
+                null
+        );
+
+        flightRepository.saveFlight(recoveredFlight);
+        flightRepository.updateAircraft(candidate.id(), new Aircraft(
+                candidate.id(),
+                candidate.type(),
+                AircraftStatus.ASSIGNED,
+                candidate.currentAirport()
+        ));
+        return recoveredFlight;
     }
 
     private void addMatchingAircraft(Flight flight, List<RecoveryOption> options, boolean atDeparture) {
-        for (Aircraft candidate : aircraft) {
+        for (Aircraft candidate : flightRepository.getAircraft()) {
             boolean aircraftAtDeparture =
                     candidate.currentAirport().equals(flight.departureAirport());
             boolean compatibleAndAvailable =
@@ -109,7 +102,8 @@ public class FlightRecoveryService {
     }
 
     private Flight findFlight(String flightId) {
-        if (flight.id().equals(flightId)) {
+        Flight flight = flightRepository.findFlightById(flightId);
+        if (flight != null) {
             return flight;
         }
         throw new ResponseStatusException(

@@ -1,5 +1,7 @@
 package com.example.flightops.api;
 
+import com.example.flightops.repository.FlightRepository;
+import com.example.flightops.service.FlightRecoveryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -15,7 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(FlightController.class)
-@Import(com.example.flightops.service.FlightRecoveryService.class)
+@Import({FlightRecoveryService.class, FlightRepository.class})
 class FlightControllerTest {
     @Autowired
     private MockMvc mockMvc;

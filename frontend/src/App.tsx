@@ -1,55 +1,5 @@
 import { useEffect, useState } from "react";
-
-type Flight = {
-  id: string;
-  flightNumber: string;
-  departureAirport: string;
-  arrivalAirport: string;
-  aircraftType: string;
-  assignedAircraftId: string;
-  status: "DISRUPTED" | "RECOVERED";
-  disruptionReason: string | null;
-};
-
-type RecoveryOption = {
-  aircraftId: string;
-  aircraftType: string;
-  currentAirport: string;
-  requiresRepositioning: boolean;
-  rank: number;
-};
-
-type ApiError = {
-  message?: string;
-};
-
-const API_URL = "/api/flights";
-
-async function request<T>(url: string, options?: RequestInit): Promise<T> {
-  let response: Response;
-
-  try {
-    response = await fetch(url, options);
-  } catch {
-    throw new Error("Cannot reach the API. Start the backend with `mvn spring-boot:run`.");
-  }
-
-  const body = await response.text();
-  let data: unknown;
-
-  try {
-    data = JSON.parse(body);
-  } catch {
-    throw new Error("The API returned an invalid response. Check that the backend is running.");
-  }
-
-  if (!response.ok) {
-    const apiError = data as ApiError;
-    throw new Error(apiError.message ?? `Request failed (${response.status}).`);
-  }
-
-  return data as T;
-}
+import { getFlights, getRecoveryOptions, reassignFlight, type Flight, type RecoveryOption } from "./api";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Something went wrong.";
@@ -68,16 +18,14 @@ function App() {
     setMessage("");
 
     try {
-      const flights = await request<Flight[]>(API_URL);
+      const flights = await getFlights();
       const demoFlight = flights[0];
       setFlight(demoFlight ?? null);
       setOptions([]);
       setSelectedAircraftId("");
 
       if (demoFlight?.status === "DISRUPTED") {
-        const recoveryOptions = await request<RecoveryOption[]>(
-          `${API_URL}/${demoFlight.id}/recovery-options`,
-        );
+        const recoveryOptions = await getRecoveryOptions(demoFlight.id);
         setOptions(recoveryOptions);
       }
     } catch (error) {
@@ -101,14 +49,7 @@ function App() {
     setMessage("");
 
     try {
-      const recoveredFlight = await request<Flight>(
-        `${API_URL}/${flight.id}/reassign`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ aircraftId: selectedAircraftId }),
-        },
-      );
+      const recoveredFlight = await reassignFlight(flight.id, selectedAircraftId);
       setFlight(recoveredFlight);
       setMessage(`Flight recovered with aircraft ${recoveredFlight.assignedAircraftId}.`);
     } catch (error) {
