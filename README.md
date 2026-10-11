@@ -21,11 +21,11 @@ For this example, the choices are:
 
 Choose an aircraft and select **Assign selected aircraft**. The backend assigns it to the flight and changes the flight status to **RECOVERED**. The screen then shows that recovery is complete.
 
-The app is split into two parts: a Java backend that holds the example flight and makes the recovery decision, and a React screen in the browser that displays the flight and sends the operator's selection to the backend. Both parts need to be running for the full demo to work.
+The app is split into two parts: a Java backend that stores flight, aircraft, and recovery history in a local H2 database and makes the recovery decision, and a React screen in the browser that displays the flight and sends the operator's selection to the backend. Both parts need to be running for the full demo to work.
 
 ## What this demo does not do
 
-The flight and aircraft information is example data kept in memory, not in a database. It resets when the backend restarts. The recovery rule is intentionally limited to aircraft type, availability, and current airport. It does not check crew, maintenance records beyond the sample hold, weather, airport restrictions, aircraft performance, passenger needs, or any other real dispatch requirements.
+The flight and aircraft information is example data, not live operational data. H2 stores the app's records locally in `backend/data/flightops.mv.db`, so assignments and completed recovery history remain available after a restart. The recovery rule is intentionally limited to aircraft type, availability, and current airport. It does not check crew, maintenance records beyond the sample hold, weather, airport restrictions, aircraft performance, passenger needs, or any other real dispatch requirements.
 
 ## What you need
 
@@ -85,10 +85,13 @@ Leave both windows open while using the app. If the page says the API cannot be 
 3. Select **N701NJ** or **N702NJ**.
 4. Select **Assign selected aircraft**.
 5. Confirm that the flight changes to **RECOVERED**.
+6. Open **History** to see the incident reason, aircraft replaced, recovery aircraft, repositioning requirement, and recovery time.
 
-The example data is reset when the backend restarts. To demonstrate the workflow again, stop the backend with **Ctrl+C** in its PowerShell window, then run `mvn spring-boot:run` again. Refresh the browser page.
+The flight remains recovered after the backend restarts, and its recovery is kept in **History**. To run the demo workflow again, create a new disrupted flight or reset the local H2 database after stopping the backend.
 
 ## Useful links while the backend is running
 
 - `http://localhost:8080/api/flights` shows the example flight data.
 - `http://localhost:8080/api/flights/FL-1001/recovery-options` shows the replacement aircraft returned by the backend.
+- `http://localhost:8080/api/flights/history` shows completed recovery records.
+- `http://localhost:8080/h2-console` opens the H2 console (JDBC URL: `jdbc:h2:file:./data/flightops;MODE=PostgreSQL;DB_CLOSE_ON_EXIT=FALSE`, user: `sa`, blank password).

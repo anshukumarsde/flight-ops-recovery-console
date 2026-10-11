@@ -2,9 +2,11 @@ package com.example.flightops.repository;
 
 import com.example.flightops.entity.AircraftEntity;
 import com.example.flightops.entity.FlightEntity;
+import com.example.flightops.entity.RecoveryHistoryEntity;
 import com.example.flightops.model.Aircraft;
 import com.example.flightops.model.AircraftStatus;
 import com.example.flightops.model.Flight;
+import com.example.flightops.model.RecoveryHistory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -28,11 +31,18 @@ class FlightRepositoryTest {
     @Mock
     private AircraftJpaRepository aircraftJpaRepository;
 
+    @Mock
+    private RecoveryHistoryJpaRepository recoveryHistoryJpaRepository;
+
     private FlightRepository flightRepository;
 
     @BeforeEach
     void setUp() {
-        flightRepository = new FlightRepository(flightJpaRepository, aircraftJpaRepository);
+        flightRepository = new FlightRepository(
+                flightJpaRepository,
+                aircraftJpaRepository,
+                recoveryHistoryJpaRepository
+        );
     }
 
     @Test
@@ -102,6 +112,32 @@ class FlightRepositoryTest {
         verify(flightJpaRepository).save(captor.capture());
         assertEquals("FL-1001", captor.getValue().getId());
         assertEquals("NJ 1001", captor.getValue().getFlightNumber());
+    }
+
+    @Test
+    void getRecoveryHistoryMapsEntitiesToDomainRecords() {
+        when(recoveryHistoryJpaRepository.findAllByOrderByRecoveredAtDesc()).thenReturn(List.of(
+                new RecoveryHistoryEntity(
+                        "FL-1001",
+                        "NJ 1001",
+                        "KTEB",
+                        "KMIA",
+                        "Maintenance hold",
+                        "N700NJ",
+                        "N701NJ",
+                        "KTEB",
+                        false,
+                        Instant.parse("2026-10-11T12:00:00Z")
+                )
+        ));
+
+        List<RecoveryHistory> history = flightRepository.getRecoveryHistory();
+
+        assertEquals(1, history.size());
+        assertEquals("FL-1001", history.get(0).flightId());
+        assertEquals("Maintenance hold", history.get(0).disruptionReason());
+        assertEquals("N701NJ", history.get(0).assignedAircraftId());
+        assertEquals(false, history.get(0).repositionRequired());
     }
 
     @Test

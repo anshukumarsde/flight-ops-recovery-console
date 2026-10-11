@@ -30,6 +30,10 @@ export async function getFlights() {
   return request(API_BASE_URL);
 }
 
+export async function getRecoveryHistory() {
+  return request(`${API_BASE_URL}/history`);
+}
+
 export async function getRecoveryOptions(flightId) {
   return request(`${API_BASE_URL}/${flightId}/recovery-options`);
 }

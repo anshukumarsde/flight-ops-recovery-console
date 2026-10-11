@@ -2,8 +2,10 @@ package com.example.flightops.repository;
 
 import com.example.flightops.entity.AircraftEntity;
 import com.example.flightops.entity.FlightEntity;
+import com.example.flightops.entity.RecoveryHistoryEntity;
 import com.example.flightops.model.Aircraft;
 import com.example.flightops.model.Flight;
+import com.example.flightops.model.RecoveryHistory;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -12,10 +14,16 @@ import java.util.List;
 public class FlightRepository {
     private final FlightJpaRepository flightJpaRepository;
     private final AircraftJpaRepository aircraftJpaRepository;
+    private final RecoveryHistoryJpaRepository recoveryHistoryJpaRepository;
 
-    public FlightRepository(FlightJpaRepository flightJpaRepository, AircraftJpaRepository aircraftJpaRepository) {
+    public FlightRepository(
+            FlightJpaRepository flightJpaRepository,
+            AircraftJpaRepository aircraftJpaRepository,
+            RecoveryHistoryJpaRepository recoveryHistoryJpaRepository
+    ) {
         this.flightJpaRepository = flightJpaRepository;
         this.aircraftJpaRepository = aircraftJpaRepository;
+        this.recoveryHistoryJpaRepository = recoveryHistoryJpaRepository;
     }
 
     public List<Flight> getFlights() {
@@ -32,6 +40,16 @@ public class FlightRepository {
 
     public void saveFlight(Flight updatedFlight) {
         flightJpaRepository.save(toEntity(updatedFlight));
+    }
+
+    public List<RecoveryHistory> getRecoveryHistory() {
+        return recoveryHistoryJpaRepository.findAllByOrderByRecoveredAtDesc().stream()
+                .map(this::toDomainRecoveryHistory)
+                .toList();
+    }
+
+    public void saveRecoveryHistory(RecoveryHistory history) {
+        recoveryHistoryJpaRepository.save(toEntity(history));
     }
 
     // Repository layer translates persistence entities to domain objects without changing business rules.
@@ -88,6 +106,37 @@ public class FlightRepository {
                 entity.getType(),
                 entity.getStatus(),
                 entity.getCurrentAirport()
+        );
+    }
+
+    private RecoveryHistory toDomainRecoveryHistory(RecoveryHistoryEntity entity) {
+        return new RecoveryHistory(
+                entity.getId(),
+                entity.getFlightId(),
+                entity.getFlightNumber(),
+                entity.getDepartureAirport(),
+                entity.getArrivalAirport(),
+                entity.getDisruptionReason(),
+                entity.getPreviousAircraftId(),
+                entity.getAssignedAircraftId(),
+                entity.getAircraftCurrentAirport(),
+                entity.isRepositionRequired(),
+                entity.getRecoveredAt()
+        );
+    }
+
+    private RecoveryHistoryEntity toEntity(RecoveryHistory history) {
+        return new RecoveryHistoryEntity(
+                history.flightId(),
+                history.flightNumber(),
+                history.departureAirport(),
+                history.arrivalAirport(),
+                history.disruptionReason(),
+                history.previousAircraftId(),
+                history.assignedAircraftId(),
+                history.aircraftCurrentAirport(),
+                history.repositionRequired(),
+                history.recoveredAt()
         );
     }
 }

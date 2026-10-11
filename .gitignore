@@ -3,6 +3,10 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 /backend/target/
+/backend/data/*.mv.db
+/backend/data/*.trace.db
+/backend/data/*.lock.db
+/backend/data/*.temp.db
 /frontend/node_modules/
 /frontend/dist/
 .kotlin

@@ -204,6 +204,82 @@ button {
   gap: 10px;
 }
 
+.recovery-history-list {
+  display: grid;
+  gap: 14px;
+}
+
+.history-card {
+  padding: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.history-heading,
+.history-route,
+.history-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.history-heading h3 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1.15rem;
+}
+
+.history-heading .eyebrow {
+  margin-bottom: 5px;
+}
+
+.history-route {
+  justify-content: flex-start;
+  margin-top: 16px;
+  color: #7dd3fc;
+}
+
+.history-route strong {
+  color: #e2e8f0;
+}
+
+.history-details {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.history-details > div {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.28);
+}
+
+.history-details span,
+.history-footer {
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+.history-details strong {
+  color: #f8fafc;
+  overflow-wrap: anywhere;
+}
+
+.history-footer {
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
 .manifest-row,
 .dispatch-row {
   display: grid;
@@ -732,6 +808,14 @@ button {
     grid-template-columns: auto 1fr;
     align-items: start;
     gap: 12px;
+  }
+
+  .history-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .history-heading {
+    align-items: flex-start;
   }
 
   .manifest-route,

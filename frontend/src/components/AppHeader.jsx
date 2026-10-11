@@ -1,4 +1,4 @@
-const TABS = ["Overview", "Flights", "Recovery", "Dispatch"];
+const TABS = ["Overview", "Flights", "Recovery", "Dispatch", "History"];
 
 function AppHeader({ activeTab, onTabChange }) {
   return (

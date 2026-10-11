@@ -3,14 +3,17 @@ package com.example.flightops.service;
 import com.example.flightops.model.Aircraft;
 import com.example.flightops.model.AircraftStatus;
 import com.example.flightops.model.Flight;
+import com.example.flightops.model.RecoveryHistory;
 import com.example.flightops.model.RecoveryOption;
 import com.example.flightops.repository.FlightRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.Instant;
 
 @Service
 public class FlightRecoveryService {
@@ -24,6 +27,10 @@ public class FlightRecoveryService {
         return flightRepository.getFlights();
     }
 
+    public List<RecoveryHistory> getRecoveryHistory() {
+        return flightRepository.getRecoveryHistory();
+    }
+
     public List<RecoveryOption> getRecoveryOptions(String flightId) {
         Flight flight = findFlight(flightId);
         ensureDisruptedFlight(flight, "Recovery options are only available for disrupted flights");
@@ -35,6 +42,7 @@ public class FlightRecoveryService {
         return options;
     }
 
+    @Transactional
     public Flight reassignFlight(String flightId, String aircraftId) {
         Flight flight = findFlight(flightId);
         ensureDisruptedFlight(flight, "Flight is not disrupted");
@@ -49,6 +57,20 @@ public class FlightRecoveryService {
         }
 
         validateAssignableAircraft(flight, candidate);
+
+        flightRepository.saveRecoveryHistory(new RecoveryHistory(
+                null,
+                flight.id(),
+                flight.flightNumber(),
+                flight.departureAirport(),
+                flight.arrivalAirport(),
+                flight.disruptionReason(),
+                flight.assignedAircraftId(),
+                candidate.id(),
+                candidate.currentAirport(),
+                !candidate.currentAirport().equals(flight.departureAirport()),
+                Instant.now()
+        ));
 
         Flight recoveredFlight = new Flight(
                 flight.id(),

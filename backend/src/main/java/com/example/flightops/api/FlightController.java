@@ -1,6 +1,7 @@
 package com.example.flightops.api;
 
 import com.example.flightops.model.Flight;
+import com.example.flightops.model.RecoveryHistory;
 import com.example.flightops.model.RecoveryOption;
 import com.example.flightops.service.FlightRecoveryService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +27,11 @@ public class FlightController {
         return flightRecoveryService.getFlights();
     }
 
+    @GetMapping("/history")
+    public List<RecoveryHistory> getRecoveryHistory() {
+        return flightRecoveryService.getRecoveryHistory();
+    }
+
     @GetMapping("/{id}/recovery-options")
     public List<RecoveryOption> getRecoveryOptions(@PathVariable String id) {
         return flightRecoveryService.getRecoveryOptions(id);
@@ -36,4 +42,3 @@ public class FlightController {
         return flightRecoveryService.reassignFlight(id, request.aircraftId());
     }
 }
-

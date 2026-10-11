@@ -3,6 +3,7 @@ package com.example.flightops.service;
 import com.example.flightops.model.Aircraft;
 import com.example.flightops.model.AircraftStatus;
 import com.example.flightops.model.Flight;
+import com.example.flightops.model.RecoveryHistory;
 import com.example.flightops.model.RecoveryOption;
 import com.example.flightops.repository.FlightRepository;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -119,6 +121,14 @@ class FlightRecoveryServiceTest {
         assertEquals("N701NJ", updatedFlight.assignedAircraftId());
         verify(flightRepository).saveFlight(any(Flight.class));
         verify(flightRepository).updateAircraft(eq("N701NJ"), any(Aircraft.class));
+        verify(flightRepository).saveRecoveryHistory(argThat((RecoveryHistory history) ->
+                history.flightId().equals("FL-1001")
+                        && history.disruptionReason().equals("Maintenance hold")
+                        && history.previousAircraftId().equals("N700NJ")
+                        && history.assignedAircraftId().equals("N701NJ")
+                        && !history.repositionRequired()
+                        && history.recoveredAt() != null
+        ));
     }
 
     @Test

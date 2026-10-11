@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { getFlights, getRecoveryOptions, reassignFlight } from "./api";
+import { getFlights, getRecoveryHistory, getRecoveryOptions, reassignFlight } from "./api";
 import AppHeader from "./components/AppHeader";
 import DispatchBoard from "./components/DispatchBoard";
 import FlightManifest from "./components/FlightManifest";
 import FlightWorkspace from "./components/FlightWorkspace";
 import OperationsSummary from "./components/OperationsSummary";
+import RecoveryHistory from "./components/RecoveryHistory";
 
 function errorMessage(error) {
   return error instanceof Error ? error.message : "Something went wrong.";
@@ -14,6 +15,8 @@ function App() {
   const [flights, setFlights] = useState([]);
   const [selectedFlightId, setSelectedFlightId] = useState("");
   const [options, setOptions] = useState([]);
+  const [recoveryHistory, setRecoveryHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedAircraftId, setSelectedAircraftId] = useState("");
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState(false);
@@ -60,6 +63,36 @@ function App() {
   useEffect(() => {
     void loadFlights();
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "History") {
+      return;
+    }
+
+    let isMounted = true;
+    setHistoryLoading(true);
+
+    getRecoveryHistory()
+      .then((history) => {
+        if (isMounted) {
+          setRecoveryHistory(history);
+        }
+      })
+      .catch((error) => {
+        if (isMounted) {
+          setMessage(errorMessage(error));
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setHistoryLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTab]);
 
   useEffect(() => {
     if (!selectedFlight) {
@@ -143,6 +176,10 @@ function App() {
 
         {!loading && activeTab === "Dispatch" && (
           <DispatchBoard flights={flights} onOpenFlight={openFlight} />
+        )}
+
+        {!loading && activeTab === "History" && (
+          <RecoveryHistory history={recoveryHistory} loading={historyLoading} />
         )}
 
         {!loading && selectedFlight && (activeTab === "Overview" || activeTab === "Recovery") && (
