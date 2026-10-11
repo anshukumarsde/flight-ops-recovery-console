@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { getFlights, getRecoveryOptions, reassignFlight, type Flight, type RecoveryOption } from "./api";
+import { getFlights, getRecoveryOptions, reassignFlight } from "./api";
 
-function errorMessage(error: unknown): string {
+function errorMessage(error) {
   return error instanceof Error ? error.message : "Something went wrong.";
 }
 
 function App() {
-  const [flight, setFlight] = useState<Flight | null>(null);
-  const [options, setOptions] = useState<RecoveryOption[]>([]);
+  const [flight, setFlight] = useState(null);
+  const [options, setOptions] = useState([]);
   const [selectedAircraftId, setSelectedAircraftId] = useState("");
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState(false);
