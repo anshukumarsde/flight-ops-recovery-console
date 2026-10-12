@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { getFlights, getRecoveryHistory, getRecoveryOptions, reassignFlight } from "./api";
 import AppHeader from "./components/AppHeader";
 import DispatchBoard from "./components/DispatchBoard";
 import FlightManifest from "./components/FlightManifest";
@@ -7,8 +6,55 @@ import FlightWorkspace from "./components/FlightWorkspace";
 import OperationsSummary from "./components/OperationsSummary";
 import RecoveryHistory from "./components/RecoveryHistory";
 
+const API_BASE_URL = "/api/flights";
+
 function errorMessage(error) {
   return error instanceof Error ? error.message : "Something went wrong.";
+}
+
+async function apiRequest(url, options) {
+  let response;
+
+  try {
+    response = await fetch(url, options);
+  } catch {
+    throw new Error("Cannot reach the API. Start the backend with `mvn spring-boot:run`.");
+  }
+
+  const body = await response.text();
+  let data;
+
+  try {
+    data = JSON.parse(body);
+  } catch {
+    throw new Error("The API returned an invalid response. Check that the backend is running.");
+  }
+
+  if (!response.ok) {
+    throw new Error(data?.message ?? `Request failed (${response.status}).`);
+  }
+
+  return data;
+}
+
+function getFlights() {
+  return apiRequest(API_BASE_URL);
+}
+
+function getRecoveryHistory() {
+  return apiRequest(`${API_BASE_URL}/history`);
+}
+
+function getRecoveryOptions(flightId) {
+  return apiRequest(`${API_BASE_URL}/${flightId}/recovery-options`);
+}
+
+function reassignFlight(flightId, aircraftId) {
+  return apiRequest(`${API_BASE_URL}/${flightId}/reassign`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ aircraftId }),
+  });
 }
 
 function App() {
@@ -44,14 +90,8 @@ function App() {
         nextFlights.find((flight) => flight.id === selectedFlightId) ?? nextFlights[0];
 
       setSelectedFlightId(nextSelectedFlight.id);
+      setOptions([]);
       setSelectedAircraftId("");
-
-      if (nextSelectedFlight.status === "DISRUPTED") {
-        const recoveryOptions = await getRecoveryOptions(nextSelectedFlight.id);
-        setOptions(recoveryOptions);
-      } else {
-        setOptions([]);
-      }
     } catch (error) {
       setFlights([]);
       setMessage(errorMessage(error));
@@ -95,13 +135,7 @@ function App() {
   }, [activeTab]);
 
   useEffect(() => {
-    if (!selectedFlight) {
-      setOptions([]);
-      setSelectedAircraftId("");
-      return;
-    }
-
-    if (selectedFlight.status !== "DISRUPTED") {
+    if (!selectedFlight || selectedFlight.status !== "DISRUPTED") {
       setOptions([]);
       setSelectedAircraftId("");
       return;
