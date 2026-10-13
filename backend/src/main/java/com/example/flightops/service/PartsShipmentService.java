@@ -1,12 +1,10 @@
 package com.example.flightops.service;
 
+import com.example.flightops.api.CreatePartsOrderRequest;
 import com.example.flightops.api.PartsShipmentUpdateRequest;
 import com.example.flightops.entity.PartsShipmentEntity;
-import com.example.flightops.entity.PartsShipmentUpdateEntity;
 import com.example.flightops.model.PartsShipment;
-import com.example.flightops.model.PartsShipmentUpdate;
 import com.example.flightops.repository.PartsShipmentJpaRepository;
-import com.example.flightops.repository.PartsShipmentUpdateJpaRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,22 +15,18 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 @Service
 public class PartsShipmentService {
     private static final Set<String> VALID_STATUSES = Set.of(
-            "ORDERED", "IN_TRANSIT", "DELAYED", "OUT_FOR_DELIVERY", "DELIVERED"
+            "ORDERED", "IN_TRANSIT", "DELAYED", "DELIVERED"
     );
 
     private final PartsShipmentJpaRepository shipmentRepository;
-    private final PartsShipmentUpdateJpaRepository updateRepository;
 
-    public PartsShipmentService(
-            PartsShipmentJpaRepository shipmentRepository,
-            PartsShipmentUpdateJpaRepository updateRepository
-    ) {
+    public PartsShipmentService(PartsShipmentJpaRepository shipmentRepository) {
         this.shipmentRepository = shipmentRepository;
-        this.updateRepository = updateRepository;
     }
 
     @Transactional(readOnly = true)
@@ -40,6 +34,48 @@ public class PartsShipmentService {
         return shipmentRepository.findAllByOrderByUpdatedAtDesc().stream()
                 .map(this::toModel)
                 .toList();
+    }
+
+    @Transactional
+    public PartsShipment createOrder(CreatePartsOrderRequest request) {
+        String partNumber = required(request.partNumber(), "Part number");
+        String partName = required(request.partName(), "Part name");
+        String supplier = required(request.supplier(), "Supplier");
+        String origin = required(request.origin(), "Origin");
+        String destination = required(request.destination(), "Destination");
+        if (request.quantity() == null || request.quantity() <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quantity must be greater than zero");
+        }
+
+        LocalDate estimatedDelivery;
+        try {
+            estimatedDelivery = LocalDate.parse(required(request.estimatedDelivery(), "Estimated delivery"));
+        } catch (DateTimeParseException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Estimated delivery must be a valid date (YYYY-MM-DD)");
+        }
+        if (estimatedDelivery.isBefore(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Estimated delivery cannot be in the past");
+        }
+
+        String orderReference = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        String shipmentId = "PS-" + orderReference;
+        String location = "Awaiting supplier dispatch";
+        Instant orderedAt = Instant.now();
+        PartsShipmentEntity shipment = shipmentRepository.save(new PartsShipmentEntity(
+                shipmentId,
+                "PO-" + orderReference,
+                partNumber,
+                partName,
+                request.quantity(),
+                supplier,
+                origin,
+                destination,
+                "ORDERED",
+                location,
+                estimatedDelivery,
+                orderedAt
+        ));
+        return toModel(shipment);
     }
 
     @Transactional
@@ -54,34 +90,22 @@ public class PartsShipmentService {
             );
         }
         String location = required(request.location(), "Location");
-        String note = required(request.note(), "Update note");
         LocalDate estimatedDelivery = shipment.getEstimatedDelivery();
-        if (request.estimatedDelivery() != null && !request.estimatedDelivery().isBlank()) {
-            try {
-                estimatedDelivery = LocalDate.parse(request.estimatedDelivery());
-            } catch (DateTimeParseException exception) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Estimated delivery must be a valid date (YYYY-MM-DD)");
-            }
+        try {
+            estimatedDelivery = LocalDate.parse(required(request.estimatedDelivery(), "Estimated delivery"));
+        } catch (DateTimeParseException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Estimated delivery must be a valid date (YYYY-MM-DD)");
+        }
+        if (estimatedDelivery.isBefore(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Estimated delivery cannot be in the past");
         }
 
         Instant updatedAt = Instant.now();
         shipment.updateTracking(status, location, estimatedDelivery, updatedAt);
-        shipmentRepository.save(shipment);
-        updateRepository.save(new PartsShipmentUpdateEntity(shipmentId, status, location, note, updatedAt));
-        return toModel(shipment);
+        return toModel(shipmentRepository.save(shipment));
     }
 
     private PartsShipment toModel(PartsShipmentEntity shipment) {
-        List<PartsShipmentUpdate> updates = updateRepository
-                .findAllByShipmentIdOrderByOccurredAtDesc(shipment.getId()).stream()
-                .map(update -> new PartsShipmentUpdate(
-                        update.getStatus(),
-                        update.getLocation(),
-                        update.getNote(),
-                        update.getOccurredAt()
-                ))
-                .toList();
-
         return new PartsShipment(
                 shipment.getId(),
                 shipment.getTrackingNumber(),
@@ -94,8 +118,7 @@ public class PartsShipmentService {
                 shipment.getStatus(),
                 shipment.getCurrentLocation(),
                 shipment.getEstimatedDelivery(),
-                shipment.getUpdatedAt(),
-                updates
+                shipment.getUpdatedAt()
         );
     }
 

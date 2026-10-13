@@ -1,10 +1,9 @@
 package com.example.flightops.service;
 
+import com.example.flightops.api.CreatePartsOrderRequest;
 import com.example.flightops.api.PartsShipmentUpdateRequest;
 import com.example.flightops.entity.PartsShipmentEntity;
-import com.example.flightops.entity.PartsShipmentUpdateEntity;
 import com.example.flightops.repository.PartsShipmentJpaRepository;
-import com.example.flightops.repository.PartsShipmentUpdateJpaRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,25 +27,17 @@ class PartsShipmentServiceTest {
     @Mock
     private PartsShipmentJpaRepository shipmentRepository;
 
-    @Mock
-    private PartsShipmentUpdateJpaRepository updateRepository;
-
     @InjectMocks
     private PartsShipmentService service;
 
     @Test
-    void listsShipmentsWithLocationAndUpdateHistory() {
+    void listsShipmentsWithCurrentLocation() {
         PartsShipmentEntity shipment = shipment();
-        PartsShipmentUpdateEntity update = new PartsShipmentUpdateEntity(
-                shipment.getId(), "IN_TRANSIT", "Frankfurt, Germany", "Customs cleared", Instant.now()
-        );
         when(shipmentRepository.findAllByOrderByUpdatedAtDesc()).thenReturn(List.of(shipment));
-        when(updateRepository.findAllByShipmentIdOrderByOccurredAtDesc(shipment.getId())).thenReturn(List.of(update));
 
         var result = service.getShipments();
 
         assertEquals("Frankfurt, Germany", result.get(0).currentLocation());
-        assertEquals("Customs cleared", result.get(0).updates().get(0).note());
     }
 
     @Test
@@ -54,16 +45,14 @@ class PartsShipmentServiceTest {
         PartsShipmentEntity shipment = shipment();
         when(shipmentRepository.findById(shipment.getId())).thenReturn(Optional.of(shipment));
         when(shipmentRepository.save(any(PartsShipmentEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(updateRepository.findAllByShipmentIdOrderByOccurredAtDesc(shipment.getId())).thenReturn(List.of());
-
         var result = service.addUpdate(shipment.getId(), new PartsShipmentUpdateRequest(
-                "OUT_FOR_DELIVERY", "Miami, FL", null, "Arrived at destination facility"
+                "IN_TRANSIT", "Miami, FL", LocalDate.now().plusDays(1).toString()
         ));
 
-        assertEquals("OUT_FOR_DELIVERY", result.status());
+        assertEquals("IN_TRANSIT", result.status());
         assertEquals("Miami, FL", result.currentLocation());
-        assertEquals(LocalDate.now().plusDays(2), result.estimatedDelivery());
-        verify(updateRepository).save(any(PartsShipmentUpdateEntity.class));
+        assertEquals(LocalDate.now().plusDays(1), result.estimatedDelivery());
+        verify(shipmentRepository).save(shipment);
     }
 
     @Test
@@ -71,13 +60,50 @@ class PartsShipmentServiceTest {
         when(shipmentRepository.findById("missing")).thenReturn(Optional.empty());
         assertEquals(404, assertThrows(ResponseStatusException.class,
                 () -> service.addUpdate("missing", new PartsShipmentUpdateRequest(
-                        "IN_TRANSIT", "Chicago, IL", null, "Update"
+                        "IN_TRANSIT", "Chicago, IL", LocalDate.now().plusDays(1).toString()
                 ))).getStatusCode().value());
 
         when(shipmentRepository.findById("PS-1001")).thenReturn(Optional.of(shipment()));
         assertEquals(400, assertThrows(ResponseStatusException.class,
                 () -> service.addUpdate("PS-1001", new PartsShipmentUpdateRequest(
-                        "UNKNOWN", "Chicago, IL", null, "Update"
+                        "UNKNOWN", "Chicago, IL", LocalDate.now().plusDays(1).toString()
+                ))).getStatusCode().value());
+    }
+
+    @Test
+    void createsAnOrderReadyForTracking() {
+        when(shipmentRepository.save(any(PartsShipmentEntity.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        var order = service.createOrder(new CreatePartsOrderRequest(
+                "PMP-2048",
+                "Engine oil pump",
+                2,
+                "Example Aviation Parts",
+                "Dallas, TX",
+                "Miami, FL",
+                LocalDate.now().plusDays(4).toString()
+        ));
+
+        assertEquals("ORDERED", order.status());
+        assertEquals(2, order.quantity());
+        assertEquals("Awaiting supplier dispatch", order.currentLocation());
+        assertEquals("PO-" + order.id().substring(3), order.trackingNumber());
+        verify(shipmentRepository).save(any(PartsShipmentEntity.class));
+    }
+
+    @Test
+    void rejectsOrdersWithInvalidQuantitiesOrPastDeliveryDates() {
+        assertEquals(400, assertThrows(ResponseStatusException.class,
+                () -> service.createOrder(new CreatePartsOrderRequest(
+                        "PMP-2048", "Engine oil pump", 0, "Supplier", "Dallas", "Miami",
+                        LocalDate.now().plusDays(1).toString()
+                ))).getStatusCode().value());
+
+        assertEquals(400, assertThrows(ResponseStatusException.class,
+                () -> service.createOrder(new CreatePartsOrderRequest(
+                        "PMP-2048", "Engine oil pump", 1, "Supplier", "Dallas", "Miami",
+                        LocalDate.now().minusDays(1).toString()
                 ))).getStatusCode().value());
     }
 

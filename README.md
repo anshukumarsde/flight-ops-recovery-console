@@ -149,7 +149,7 @@ Both the backend and frontend must be running while you use the app. Stop either
 - **Flights** shows the flight manifest.
 - **Recovery** lets you review a disrupted flight and assign a replacement aircraft.
 - **Dispatch** shows flight updates and provides shortcuts to the related flight or recovery.
-- **Parts** tracks aircraft parts in transit, including operator-entered carrier locations, delivery estimates, and shipment update history. Operators can add a status, location, ETA, and carrier note as new checkpoints arrive.
+- **Parts** records parts orders and shows their current delivery status, location, and expected delivery date. Users can update those tracking details as the shipment moves; this demo does not connect to a supplier or carrier.
 - **History** shows completed recoveries saved in the database.
 
 To try the recovery:
@@ -209,8 +209,9 @@ You can open these URLs in a browser while the backend is running:
 | `GET` | `http://localhost:8080/api/flights/FL-1001/recovery-options` | List compatible recovery aircraft for a disrupted flight |
 | `POST` | `http://localhost:8080/api/flights/FL-1001/reassign` | Assign a chosen aircraft to a disrupted flight |
 | `GET` | `http://localhost:8080/api/flights/history` | List completed recovery records, newest first |
-| `GET` | `http://localhost:8080/api/parts/shipments` | List parts shipments and their movement history |
-| `POST` | `http://localhost:8080/api/parts/shipments/PS-1001/updates` | Record a shipment location/status update |
+| `GET` | `http://localhost:8080/api/parts/shipments` | List parts orders and current tracking details |
+| `POST` | `http://localhost:8080/api/parts/shipments` | Create a parts order |
+| `PATCH` | `http://localhost:8080/api/parts/shipments/PS-1001` | Update the current status, location, and expected delivery date |
 
 The `POST` request expects JSON such as:
 
@@ -220,19 +221,33 @@ The `POST` request expects JSON such as:
 }
 ```
 
-A parts shipment update accepts a status (`ORDERED`, `IN_TRANSIT`, `DELAYED`, `OUT_FOR_DELIVERY`, or `DELIVERED`), current location, estimated delivery date, and carrier note:
+A tracking update accepts a status (`ORDERED`, `IN_TRANSIT`, `DELAYED`, or `DELIVERED`), current location, and expected delivery date:
 
 ```json
 {
   "status": "IN_TRANSIT",
   "location": "Atlanta, GA",
-  "estimatedDelivery": "2026-10-15",
-  "note": "Departed regional sorting facility"
+  "estimatedDelivery": "2026-10-15"
 }
 ```
 
-Shipment records and tracking checkpoints are stored in the local H2 database. The application seeds two sample shipments when the shipment table is empty.
-This demo does not connect to carrier systems or live GPS feeds; operators enter carrier updates manually.
+To place an order, provide the part, quantity, supplier, route, and expected delivery date:
+
+```json
+{
+  "partNumber": "PMP-2048",
+  "partName": "Engine oil pump",
+  "quantity": 1,
+  "supplier": "Lufthansa Technik",
+  "origin": "Hamburg, Germany",
+  "destination": "Miami, FL",
+  "estimatedDelivery": "2026-10-15"
+}
+```
+
+Orders are stored in the local H2 database. The application seeds two sample orders when the table is empty. Placing an order records it locally for tracking; it does not submit an order to an external supplier. A new order starts with status **ORDERED** and location **Awaiting supplier dispatch**. Users manually update the current status and location; no carrier connection or tracking-event history is included.
+
+**Interview summary:** An operator records a parts order, then updates its status and current location as shipping information arrives. A Spring Boot API validates and saves the order in H2, and the React screen displays the latest status, location, and ETA.
 
 ## Run the tests
 
