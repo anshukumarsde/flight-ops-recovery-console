@@ -93,9 +93,12 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState(false);
   const [message, setMessage] = useState("");
-  const [activeTab, setActiveTab] = useState("Overview");
+  const [activeTab, setActiveTab] = useState("Recovery");
 
-  const selectedFlight = flights.find((flight) => flight.id === selectedFlightId) ?? flights[0] ?? null;
+  const activeIncidents = flights.filter((flight) => flight.status === "DISRUPTED");
+  const selectedFlight = activeTab === "Recovery"
+    ? activeIncidents.find((flight) => flight.id === selectedFlightId) ?? activeIncidents[0] ?? null
+    : flights.find((flight) => flight.id === selectedFlightId) ?? flights[0] ?? null;
 
   async function loadFlights() {
     setLoading(true);
@@ -113,9 +116,10 @@ function App() {
       }
 
       const nextSelectedFlight =
-        nextFlights.find((flight) => flight.id === selectedFlightId) ?? nextFlights[0];
+        nextFlights.find((flight) => flight.id === selectedFlightId && flight.status === "DISRUPTED")
+        ?? nextFlights.find((flight) => flight.status === "DISRUPTED");
 
-      setSelectedFlightId(nextSelectedFlight.id);
+      setSelectedFlightId(nextSelectedFlight?.id ?? "");
       setOptions([]);
       setSelectedAircraftId("");
     } catch (error) {
@@ -318,9 +322,9 @@ function App() {
 
         {!loading && selectedFlight && (activeTab === "Overview" || activeTab === "Recovery") && (
           <FlightWorkspace
-            flights={flights}
+            flights={activeTab === "Recovery" ? activeIncidents : flights}
             selectedFlight={selectedFlight}
-            selectedFlightId={selectedFlightId}
+            selectedFlightId={selectedFlight.id}
             options={options}
             selectedAircraftId={selectedAircraftId}
             assigning={assigning}
@@ -332,9 +336,11 @@ function App() {
 
         {!loading && activeTab === "Recovery" && !selectedFlight && (
           <section className="card panel page-panel">
-            <p className="eyebrow">Recovery management</p>
-            <h2>No flight selected</h2>
-            <p className="empty-state">There are no flights available to review for recovery.</p>
+            <p className="eyebrow">Active incidents</p>
+            <h2>No active incidents</h2>
+            <p className="empty-state">
+              All flights are currently recovered or operating normally. New disrupted flights will appear here.
+            </p>
           </section>
         )}
 

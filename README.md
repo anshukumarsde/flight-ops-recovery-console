@@ -52,7 +52,7 @@ Requests follow this path:
 4. **JPA repositories and entities** (`repository/*JpaRepository.java`, `entity/`) connect Java data to database tables.
 5. **H2 database** stores the records locally.
 
-The `model/` folder holds the Java data objects used by the application. `config/DataInitializer.java` adds the sample flight and aircraft when the database has no corresponding records.
+The `model/` folder holds the Java data objects used by the application. `config/DataInitializer.java` adds the initial sample flight and aircraft when their tables are empty. If every saved flight has already been recovered, it adds a new disrupted sample flight and ensures a compatible replacement aircraft is available. This lets the user try a recovery again without deleting previous flights or history.
 
 ### System diagram
 
@@ -159,7 +159,7 @@ To try the recovery:
 3. Select **N701NJ** or **N702NJ**.
 4. Select **Assign selected aircraft**.
 5. Confirm that the flight is now **RECOVERED**.
-6. Open **History** to see how the incident was resolved.
+6. Open **History** to see how the incident was resolved. When all incidents have been recovered, restarting the backend creates a new sample active incident.
 
 ## Data and database
 
@@ -169,7 +169,7 @@ The database is stored locally at:
 backend/data/flightops.mv.db
 ```
 
-Unlike an in-memory database, this file keeps flight changes and recovery history when you stop and restart the backend. The sample flight and aircraft are seeded when their database tables are empty. After recovering the sample flight, it stays recovered on later starts.
+Unlike an in-memory database, this file keeps flight changes and recovery history when you stop and restart the backend. The initial sample flight and aircraft are seeded when their database tables are empty. If all saved flights are recovered when the backend starts, a new disrupted sample flight is added so the **Active Incidents** screen has a flight the user can recover. Existing recovered flights and history are retained.
 
 To start the sample workflow over, stop the backend first with **Ctrl+C**. In a PowerShell window, change to the backend folder and remove the database file:
 
@@ -271,7 +271,7 @@ npm.cmd run build
 - **`npm` script execution is blocked in PowerShell:** Use `npm.cmd` as shown above instead of `npm`.
 - **Port 8080 or 5173 is already in use:** Stop the other app using that port, then start this app again.
 - **H2 console shows an error:** Confirm the backend started successfully, use `http://localhost:8080/h2-console`, and check that the JDBC URL is copied exactly.
-- **The sample flight is already recovered:** That change is saved. Stop the backend, remove `backend/data/flightops.mv.db` as described above, and restart it to restore the initial demo data.
+- **There are no active incidents:** Restart the backend. If all saved flights are recovered, startup adds a new disrupted sample flight and an available replacement aircraft.
 
 ## Limits of this demo
 

@@ -19,7 +19,7 @@ function AppHeader({ activeTab, onTabChange }) {
             aria-current={activeTab === tab ? "page" : undefined}
             onClick={() => onTabChange(tab)}
           >
-            {tab}
+            {tab === "Recovery" ? "Active Incidents" : tab}
           </button>
         ))}
       </nav>

@@ -8,6 +8,7 @@ import com.example.flightops.repository.FlightJpaRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -22,7 +23,7 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        // Seed the demo flight and aircraft pool only once when the database is empty.
+        // Seed the initial demo records only when their tables are empty.
         if (flightJpaRepository.count() == 0) {
             flightJpaRepository.save(new FlightEntity(
                     "FL-1001",
@@ -45,6 +46,71 @@ public class DataInitializer implements CommandLineRunner {
                     new AircraftEntity("N704NJ", "Citation Latitude", AircraftStatus.ASSIGNED, "KTEB")
             ));
         }
+
+        seedActiveIncidentWhenNoneExist();
+    }
+
+    private void seedActiveIncidentWhenNoneExist() {
+        if (flightJpaRepository.existsByStatus("DISRUPTED")) {
+            return;
+        }
+
+        // Keep an incident available for the next demo run without overwriting completed flights or history.
+        int flightNumber = 1001;
+        String flightId = flightId(flightNumber);
+        while (flightJpaRepository.existsById(flightId)) {
+            flightId = flightId(++flightNumber);
+        }
+
+        List<AircraftEntity> newAircraft = new ArrayList<>();
+        String assignedAircraftId = nextAircraftId(700, newAircraft);
+        newAircraft.add(new AircraftEntity(
+                assignedAircraftId,
+                "Citation Latitude",
+                AircraftStatus.MAINTENANCE,
+                "KTEB"
+        ));
+
+        boolean hasAvailableReplacement = aircraftJpaRepository.findAll().stream()
+                .anyMatch(aircraft -> aircraft.getType().equals("Citation Latitude")
+                        && aircraft.getStatus() == AircraftStatus.AVAILABLE);
+        if (!hasAvailableReplacement) {
+            String aircraftId = nextAircraftId(700, newAircraft);
+            newAircraft.add(new AircraftEntity(
+                    aircraftId,
+                    "Citation Latitude",
+                    AircraftStatus.AVAILABLE,
+                    "KTEB"
+            ));
+        }
+
+        flightJpaRepository.save(new FlightEntity(
+                flightId,
+                "NJ " + flightNumber,
+                "KTEB",
+                "KMIA",
+                "Citation Latitude",
+                assignedAircraftId,
+                "DISRUPTED",
+                "Maintenance hold"
+        ));
+        aircraftJpaRepository.saveAll(newAircraft);
+    }
+
+    private String flightId(int flightNumber) {
+        return "FL-" + flightNumber;
+    }
+
+    private String nextAircraftId(int startNumber, List<AircraftEntity> pendingAircraft) {
+        int aircraftNumber = startNumber;
+        String aircraftId = "N" + aircraftNumber + "NJ";
+        while (aircraftJpaRepository.existsById(aircraftId) || isPendingAircraft(aircraftId, pendingAircraft)) {
+            aircraftId = "N" + ++aircraftNumber + "NJ";
+        }
+        return aircraftId;
+    }
+
+    private boolean isPendingAircraft(String aircraftId, List<AircraftEntity> pendingAircraft) {
+        return pendingAircraft.stream().anyMatch(aircraft -> aircraft.getId().equals(aircraftId));
     }
 }
-
