@@ -51,11 +51,19 @@ function getPartsShipments() {
   return apiRequest(PARTS_API_URL);
 }
 
-function addPartsShipmentUpdate(shipmentId, update) {
-  return apiRequest(`${PARTS_API_URL}/${shipmentId}/updates`, {
-    method: "POST",
+function updatePartsShipment(shipmentId, update) {
+  return apiRequest(`${PARTS_API_URL}/${shipmentId}`, {
+    method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(update),
+  });
+}
+
+function createPartsOrder(order) {
+  return apiRequest(PARTS_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(order),
   });
 }
 
@@ -80,6 +88,7 @@ function App() {
   const [partsShipments, setPartsShipments] = useState([]);
   const [partsLoading, setPartsLoading] = useState(false);
   const [updatingShipmentId, setUpdatingShipmentId] = useState("");
+  const [creatingOrder, setCreatingOrder] = useState(false);
   const [selectedAircraftId, setSelectedAircraftId] = useState("");
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState(false);
@@ -234,7 +243,7 @@ function App() {
     setUpdatingShipmentId(shipmentId);
     setMessage("");
     try {
-      const savedShipment = await addPartsShipmentUpdate(shipmentId, update);
+      const savedShipment = await updatePartsShipment(shipmentId, update);
       setPartsShipments((current) => [
         savedShipment,
         ...current.filter((shipment) => shipment.id !== shipmentId),
@@ -245,6 +254,22 @@ function App() {
       return false;
     } finally {
       setUpdatingShipmentId("");
+    }
+  }
+
+  async function submitPartsOrder(order) {
+    setCreatingOrder(true);
+    setMessage("");
+    try {
+      const newOrder = await createPartsOrder(order);
+      setPartsShipments((current) => [newOrder, ...current]);
+      setMessage(`Parts order ${newOrder.trackingNumber} placed.`);
+      return true;
+    } catch (error) {
+      setMessage(errorMessage(error));
+      return false;
+    } finally {
+      setCreatingOrder(false);
     }
   }
 
@@ -285,6 +310,8 @@ function App() {
             shipments={partsShipments}
             loading={partsLoading}
             updatingShipmentId={updatingShipmentId}
+            creatingOrder={creatingOrder}
+            onCreateOrder={submitPartsOrder}
             onAddUpdate={savePartsShipmentUpdate}
           />
         )}

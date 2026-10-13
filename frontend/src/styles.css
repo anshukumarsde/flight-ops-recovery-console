@@ -274,7 +274,7 @@ button {
 
 .shipment-route {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 0.8fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: center;
   gap: 14px;
   margin-top: 20px;
@@ -297,47 +297,9 @@ button {
   font-size: 0.88rem;
 }
 
-.shipment-route-arrow {
-  color: #7dd3fc;
-  font-size: 1.4rem;
-}
-
-.shipment-updates {
-  display: grid;
-  gap: 14px;
-  margin-top: 20px;
-}
-
-.shipment-updates h4,
 .shipment-update-form h4 {
   margin: 0;
   color: #f8fafc;
-}
-
-.shipment-update {
-  display: flex;
-  gap: 12px;
-}
-
-.shipment-update-dot {
-  flex: 0 0 auto;
-  width: 9px;
-  height: 9px;
-  margin: 5px 2px;
-  border-radius: 50%;
-  background: #38bdf8;
-  box-shadow: 0 0 0 5px rgba(56, 189, 248, 0.12);
-}
-
-.shipment-update strong {
-  color: #e2e8f0;
-  font-size: 0.88rem;
-}
-
-.shipment-update p {
-  margin: 3px 0;
-  color: #cbd5e1;
-  font-size: 0.84rem;
 }
 
 .shipment-update-form {
@@ -347,6 +309,20 @@ button {
   margin-top: 20px;
   padding-top: 18px;
   border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.parts-order-form {
+  margin: 18px 0 24px;
+  padding: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.22);
+}
+
+.parts-order-form .shipment-intro {
+  grid-column: 1 / -1;
+  margin: -4px 0 0;
+  font-size: 0.84rem;
 }
 
 .shipment-update-form h4 {
@@ -369,10 +345,6 @@ button {
   border-radius: 10px;
   background: rgba(2, 6, 23, 0.4);
   color: #e2e8f0;
-}
-
-.shipment-note-field {
-  grid-column: span 2;
 }
 
 .shipment-submit {
@@ -1000,16 +972,8 @@ button {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .shipment-route-arrow {
-    display: none;
-  }
-
   .shipment-update-form {
     grid-template-columns: 1fr;
-  }
-
-  .shipment-note-field {
-    grid-column: auto;
   }
 
   .shipment-submit {
