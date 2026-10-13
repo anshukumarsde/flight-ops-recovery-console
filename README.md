@@ -149,6 +149,7 @@ Both the backend and frontend must be running while you use the app. Stop either
 - **Flights** shows the flight manifest.
 - **Recovery** lets you review a disrupted flight and assign a replacement aircraft.
 - **Dispatch** shows flight updates and provides shortcuts to the related flight or recovery.
+- **Parts** tracks aircraft parts in transit, including operator-entered carrier locations, delivery estimates, and shipment update history. Operators can add a status, location, ETA, and carrier note as new checkpoints arrive.
 - **History** shows completed recoveries saved in the database.
 
 To try the recovery:
@@ -208,6 +209,8 @@ You can open these URLs in a browser while the backend is running:
 | `GET` | `http://localhost:8080/api/flights/FL-1001/recovery-options` | List compatible recovery aircraft for a disrupted flight |
 | `POST` | `http://localhost:8080/api/flights/FL-1001/reassign` | Assign a chosen aircraft to a disrupted flight |
 | `GET` | `http://localhost:8080/api/flights/history` | List completed recovery records, newest first |
+| `GET` | `http://localhost:8080/api/parts/shipments` | List parts shipments and their movement history |
+| `POST` | `http://localhost:8080/api/parts/shipments/PS-1001/updates` | Record a shipment location/status update |
 
 The `POST` request expects JSON such as:
 
@@ -216,6 +219,20 @@ The `POST` request expects JSON such as:
   "aircraftId": "N701NJ"
 }
 ```
+
+A parts shipment update accepts a status (`ORDERED`, `IN_TRANSIT`, `DELAYED`, `OUT_FOR_DELIVERY`, or `DELIVERED`), current location, estimated delivery date, and carrier note:
+
+```json
+{
+  "status": "IN_TRANSIT",
+  "location": "Atlanta, GA",
+  "estimatedDelivery": "2026-10-15",
+  "note": "Departed regional sorting facility"
+}
+```
+
+Shipment records and tracking checkpoints are stored in the local H2 database. The application seeds two sample shipments when the shipment table is empty.
+This demo does not connect to carrier systems or live GPS feeds; operators enter carrier updates manually.
 
 ## Run the tests
 

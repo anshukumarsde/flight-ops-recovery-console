@@ -216,6 +216,180 @@ button {
   background: rgba(15, 23, 42, 0.48);
 }
 
+.shipment-intro {
+  margin: -4px 0 20px;
+  color: #cbd5e1;
+}
+
+.shipment-list {
+  display: grid;
+  gap: 16px;
+}
+
+.shipment-card {
+  padding: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.shipment-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.shipment-heading h3 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 1.15rem;
+}
+
+.shipment-supplier {
+  margin: 6px 0 0;
+  color: #94a3b8;
+  font-size: 0.84rem;
+}
+
+.shipment-status {
+  white-space: nowrap;
+}
+
+.shipment-status.in-transit,
+.shipment-status.out-for-delivery {
+  color: #7dd3fc;
+  background: rgba(14, 165, 233, 0.13);
+}
+
+.shipment-status.delayed {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.13);
+}
+
+.shipment-status.delivered {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.13);
+}
+
+.shipment-route {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 0.8fr);
+  align-items: center;
+  gap: 14px;
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.28);
+}
+
+.shipment-route div span,
+.shipment-update time {
+  display: block;
+  color: #94a3b8;
+  font-size: 0.73rem;
+}
+
+.shipment-route div strong {
+  display: block;
+  margin-top: 5px;
+  color: #e2e8f0;
+  font-size: 0.88rem;
+}
+
+.shipment-route-arrow {
+  color: #7dd3fc;
+  font-size: 1.4rem;
+}
+
+.shipment-updates {
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.shipment-updates h4,
+.shipment-update-form h4 {
+  margin: 0;
+  color: #f8fafc;
+}
+
+.shipment-update {
+  display: flex;
+  gap: 12px;
+}
+
+.shipment-update-dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  margin: 5px 2px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 0 5px rgba(56, 189, 248, 0.12);
+}
+
+.shipment-update strong {
+  color: #e2e8f0;
+  font-size: 0.88rem;
+}
+
+.shipment-update p {
+  margin: 3px 0;
+  color: #cbd5e1;
+  font-size: 0.84rem;
+}
+
+.shipment-update-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.shipment-update-form h4 {
+  grid-column: 1 / -1;
+}
+
+.shipment-update-form label {
+  display: grid;
+  gap: 6px;
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+.shipment-update-form input,
+.shipment-update-form select {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.4);
+  color: #e2e8f0;
+}
+
+.shipment-note-field {
+  grid-column: span 2;
+}
+
+.shipment-submit {
+  align-self: end;
+  min-height: 40px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #1d4ed8;
+  color: #fff;
+  font-weight: 700;
+}
+
+.shipment-submit:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 .history-heading,
 .history-route,
 .history-footer {
@@ -816,6 +990,30 @@ button {
 
   .history-heading {
     align-items: flex-start;
+  }
+
+  .shipment-heading {
+    flex-direction: column;
+  }
+
+  .shipment-route {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .shipment-route-arrow {
+    display: none;
+  }
+
+  .shipment-update-form {
+    grid-template-columns: 1fr;
+  }
+
+  .shipment-note-field {
+    grid-column: auto;
+  }
+
+  .shipment-submit {
+    width: 100%;
   }
 
   .manifest-route,

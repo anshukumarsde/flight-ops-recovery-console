@@ -4,9 +4,11 @@ import DispatchBoard from "./components/DispatchBoard";
 import FlightManifest from "./components/FlightManifest";
 import FlightWorkspace from "./components/FlightWorkspace";
 import OperationsSummary from "./components/OperationsSummary";
+import PartsShipmentTracker from "./components/PartsShipmentTracker";
 import RecoveryHistory from "./components/RecoveryHistory";
 
 const API_BASE_URL = "/api/flights";
+const PARTS_API_URL = "/api/parts/shipments";
 
 function errorMessage(error) {
   return error instanceof Error ? error.message : "Something went wrong.";
@@ -45,6 +47,18 @@ function getRecoveryHistory() {
   return apiRequest(`${API_BASE_URL}/history`);
 }
 
+function getPartsShipments() {
+  return apiRequest(PARTS_API_URL);
+}
+
+function addPartsShipmentUpdate(shipmentId, update) {
+  return apiRequest(`${PARTS_API_URL}/${shipmentId}/updates`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(update),
+  });
+}
+
 function getRecoveryOptions(flightId) {
   return apiRequest(`${API_BASE_URL}/${flightId}/recovery-options`);
 }
@@ -63,6 +77,9 @@ function App() {
   const [options, setOptions] = useState([]);
   const [recoveryHistory, setRecoveryHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [partsShipments, setPartsShipments] = useState([]);
+  const [partsLoading, setPartsLoading] = useState(false);
+  const [updatingShipmentId, setUpdatingShipmentId] = useState("");
   const [selectedAircraftId, setSelectedAircraftId] = useState("");
   const [loading, setLoading] = useState(true);
   const [assigning, setAssigning] = useState(false);
@@ -135,6 +152,35 @@ function App() {
   }, [activeTab]);
 
   useEffect(() => {
+    if (activeTab !== "Parts") {
+      return;
+    }
+
+    let isMounted = true;
+    setPartsLoading(true);
+    getPartsShipments()
+      .then((shipments) => {
+        if (isMounted) {
+          setPartsShipments(shipments);
+        }
+      })
+      .catch((error) => {
+        if (isMounted) {
+          setMessage(errorMessage(error));
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setPartsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTab]);
+
+  useEffect(() => {
     if (!selectedFlight || selectedFlight.status !== "DISRUPTED") {
       setOptions([]);
       setSelectedAircraftId("");
@@ -184,6 +230,24 @@ function App() {
     }
   }
 
+  async function savePartsShipmentUpdate(shipmentId, update) {
+    setUpdatingShipmentId(shipmentId);
+    setMessage("");
+    try {
+      const savedShipment = await addPartsShipmentUpdate(shipmentId, update);
+      setPartsShipments((current) => [
+        savedShipment,
+        ...current.filter((shipment) => shipment.id !== shipmentId),
+      ]);
+      return true;
+    } catch (error) {
+      setMessage(errorMessage(error));
+      return false;
+    } finally {
+      setUpdatingShipmentId("");
+    }
+  }
+
   function openFlight(flight, tab) {
     setSelectedFlightId(flight.id);
     setActiveTab(tab);
@@ -214,6 +278,15 @@ function App() {
 
         {!loading && activeTab === "History" && (
           <RecoveryHistory history={recoveryHistory} loading={historyLoading} />
+        )}
+
+        {!loading && activeTab === "Parts" && (
+          <PartsShipmentTracker
+            shipments={partsShipments}
+            loading={partsLoading}
+            updatingShipmentId={updatingShipmentId}
+            onAddUpdate={savePartsShipmentUpdate}
+          />
         )}
 
         {!loading && selectedFlight && (activeTab === "Overview" || activeTab === "Recovery") && (
